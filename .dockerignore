@@ -1,0 +1,33 @@
+# Secrets — never bake these into the image
+.env
+
+# SQLite database files
+*.db
+*.db-shm
+*.db-wal
+
+# Uploaded user files (persisted via Docker volume, not in the image)
+uploads/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Version control
+.git/
+.gitignore
+
+# Editor / OS noise
+.vscode/
+.idea/
+*.DS_Store
+Thumbs.db
+
+# Docker / infra files (not needed inside the image)
+Dockerfile
+.dockerignore
+docker-compose.yml
+nginx/

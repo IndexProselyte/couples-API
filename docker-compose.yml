@@ -1,0 +1,61 @@
+services:
+
+  # ── FastAPI application ──────────────────────────────────────────────────────
+  api:
+    build: .
+    restart: unless-stopped
+
+    ports:
+      # Exposed to the host so your existing nginx can proxy to it.
+      # Bind to 127.0.0.1 so the port is NOT reachable from the internet —
+      # only your local nginx can connect to it.
+      - "127.0.0.1:8000:8000"
+
+    environment:
+      # ── CHANGE THESE BEFORE DEPLOYING ────────────────────────────────────────
+      # Generate SECRET_KEY with:
+      #   python -c "import secrets; print(secrets.token_hex(32))"
+      SECRET_KEY: "change-this-to-a-long-random-string-before-deploying"
+      HERS_PASSWORD:  "her-secret-password"
+      HIS_PASSWORD:   "his-secret-password"
+      ADMIN_PASSWORD: "admin-secret-password"
+
+      # ── Database ──────────────────────────────────────────────────────────────
+      # Four slashes = absolute path inside the container (/data/couples.db).
+      DATABASE_URL: "sqlite:////data/couples.db"
+
+      # ── File upload ───────────────────────────────────────────────────────────
+      # BASE_URL must match the public address clients use (no trailing slash).
+      BASE_URL:         "https://your-domain.com"
+      UPLOAD_DIR:       "/app/uploads"
+      MAX_UPLOAD_BYTES: "52428800"   # 50 MB
+
+      # ── CORS ──────────────────────────────────────────────────────────────────
+      # Restrict to your app's origin in production, e.g.:
+      #   ALLOWED_ORIGINS: '["https://your-domain.com"]'
+      ALLOWED_ORIGINS: '["*"]'
+
+      # ── Misc ──────────────────────────────────────────────────────────────────
+      ENABLE_DOCS:                 "true"    # set "false" in production
+      ACCESS_TOKEN_EXPIRE_MINUTES: "43200"   # 30 days
+
+    volumes:
+      # SQLite database file — persists across container restarts and rebuilds.
+      - db_data:/data
+      # Uploaded files — persisted and optionally served directly by your nginx.
+      - uploads:/app/uploads
+
+    healthcheck:
+      test: [
+        "CMD", "python", "-c",
+        "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
+      ]
+      interval: 30s
+      timeout:  10s
+      retries:  3
+      start_period: 15s
+
+# ── Persistent storage ────────────────────────────────────────────────────────
+volumes:
+  db_data:   # SQLite .db file
+  uploads:   # user-uploaded images / files
