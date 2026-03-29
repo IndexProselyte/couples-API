@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+import bcrypt
 from fastapi import HTTPException
-from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
 from admin.schemas import (
@@ -11,8 +11,6 @@ from admin.schemas import (
     UserInfo,
 )
 from database import Message, Mood, TimelineEvent, User
-
-_pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def get_stats(db: Session) -> StatsResponse:
@@ -50,7 +48,7 @@ def reset_password(db: Session, role: str, new_password: str) -> None:
     if not user:
         raise HTTPException(status_code=404, detail=f"User with role '{role}' not found")
 
-    user.password_hash = _pwd_context.hash(new_password)
+    user.password_hash = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode()
     db.commit()
 
 

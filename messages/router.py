@@ -6,13 +6,13 @@ from sqlalchemy.orm import Session
 from auth.dependencies import get_current_user
 from database import User, get_db
 from messages import service
-from messages.schemas import MessageCreate, ReactionUpdate, StarUpdate
+from messages.schemas import MessageCreate, MessageResponse, MessagesResponse, ReactionUpdate, StarUpdate
 from ws.manager import manager
 
 router = APIRouter()
 
 
-@router.get("/messages")
+@router.get("/messages", response_model=MessagesResponse)
 def list_messages(
     limit: int = Query(100, ge=1, le=500),
     before: Optional[str] = Query(None),
@@ -22,7 +22,7 @@ def list_messages(
     return service.get_messages(db, current_user, limit, before)
 
 
-@router.post("/messages")
+@router.post("/messages", response_model=MessageResponse)
 async def send_message(
     body: MessageCreate,
     db: Session = Depends(get_db),

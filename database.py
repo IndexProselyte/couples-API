@@ -140,9 +140,11 @@ def seed_db() -> None:
 
     Idempotent — safe to call on every boot.
     """
-    from passlib.context import CryptContext  # deferred to avoid top-level side-effects
+    import bcrypt
 
-    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    def _hash(password: str) -> str:
+        return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+
     db = SessionLocal()
     try:
         hers = db.query(User).filter(User.role == "hers").first()
@@ -150,7 +152,7 @@ def seed_db() -> None:
             hers = User(
                 id=str(uuid.uuid4()),
                 role="hers",
-                password_hash=pwd_context.hash(settings.hers_password),
+                password_hash=_hash(settings.hers_password),
             )
             db.add(hers)
 
@@ -159,7 +161,7 @@ def seed_db() -> None:
             his = User(
                 id=str(uuid.uuid4()),
                 role="his",
-                password_hash=pwd_context.hash(settings.his_password),
+                password_hash=_hash(settings.his_password),
             )
             db.add(his)
 
@@ -168,7 +170,7 @@ def seed_db() -> None:
             db.add(User(
                 id=str(uuid.uuid4()),
                 role="admin",
-                password_hash=pwd_context.hash(settings.admin_password),
+                password_hash=_hash(settings.admin_password),
             ))
 
         db.flush()  # ensure IDs exist before inserting child rows

@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git -C /c/Users/misko/Documents/couples-API log --oneline -10)"
+      "Bash(git -C /c/Users/misko/Documents/couples-API log --oneline -10)",
+      "Bash(python -m py_compile *.py)",
+      "Bash(grep -n \"flag_modified\" /c/Users/misko/Documents/couples-API/*/service.py)",
+      "Bash(grep -n \"return.*Message\\\\|return.*TimelineEvent\\\\|return.*User\\\\|return.*Mood\\\\|return.*CoupleProfile\" /c/Users/misko/Documents/couples-API/*/service.py)",
+      "Bash(grep -n \"\\\\.status_code\\\\|\\\\.detail\" /c/Users/misko/Documents/couples-API/*/router.py)",
+      "Bash(python3 -c \":*)"
     ]
   }
 }
