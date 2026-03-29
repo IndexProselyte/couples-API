@@ -62,6 +62,14 @@ def create_message(
         reply_to_id=body.reply_to_id,
         reply_to_text=body.reply_to_text,
         reply_to_sender_id=reply_to_sender_id,
+        image_url=body.image_url,
+        is_file=body.is_file,
+        file_name=body.file_name,
+        file_size=body.file_size,
+        sticker_path=body.sticker_path,
+        is_voice=body.is_voice,
+        voice_duration_ms=body.voice_duration_ms,
+        voice_waveform=body.voice_waveform,
         reactions=[],
     )
     db.add(msg)
