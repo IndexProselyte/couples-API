@@ -26,7 +26,7 @@ services:
 
       # ── File upload ───────────────────────────────────────────────────────────
       # BASE_URL must match the public address clients use (no trailing slash).
-      BASE_URL:         "https://your-domain.com"
+      BASE_URL:         "http://yourdomain.com"
       UPLOAD_DIR:       "/app/uploads"
       MAX_UPLOAD_BYTES: "52428800"   # 50 MB
 

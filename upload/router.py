@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import uuid
 from pathlib import Path
 
@@ -11,16 +12,52 @@ from config import get_settings
 from database import User
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 _ALLOWED_CONTENT_TYPES = {
+    # Images
     "image/jpeg",
+    "image/jpg",
     "image/png",
     "image/gif",
     "image/webp",
+    "image/heic",
+    "image/heif",
+    # Video
     "video/mp4",
+    "video/quicktime",
+    "video/x-matroska",
+    # Audio
     "audio/mpeg",
     "audio/ogg",
     "audio/wav",
+    "audio/x-wav",
+    "audio/mp4",
+    "audio/aac",
+    # Documents
+    "application/pdf",
+    "text/plain",
+    "application/msword",                                                    # .doc
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",  # .docx
+    "application/vnd.ms-excel",                                             # .xls
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",    # .xlsx
+    "application/vnd.ms-powerpoint",                                        # .ppt
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",  # .pptx
+    "text/csv",
+    "application/rtf",
+    # Archives
+    "application/zip",
+    "application/x-zip-compressed",
+    "application/x-rar-compressed",
+    "application/vnd.rar",
+    "application/x-7z-compressed",
+    "application/gzip",
+    # Binaries / executables
+    "application/x-msdownload",         # .exe
+    "application/x-msdos-program",      # .exe (alternate)
+    "application/octet-stream",         # .bin, .dll, and Flutter fallback
+    "application/x-sharedlib",          # .so
+    "application/x-dosexec",
 }
 
 
@@ -31,7 +68,14 @@ async def upload_file(
 ):
     settings = get_settings()
 
+    logger.info(
+        "Upload attempt — filename: %r  content_type: %r",
+        file.filename,
+        file.content_type,
+    )
+
     if file.content_type not in _ALLOWED_CONTENT_TYPES:
+        logger.warning("Rejected upload — unsupported content_type: %r", file.content_type)
         raise HTTPException(
             status_code=400,
             detail=f"Unsupported file type: {file.content_type}",
@@ -52,4 +96,7 @@ async def upload_file(
     async with aiofiles.open(dest, "wb") as f:
         await f.write(content)
 
-    return {"url": f"{settings.base_url}/uploads/{filename}"}
+    base = settings.base_url.rstrip("/")
+    if not base.startswith(("http://", "https://")):
+        base = f"http://{base}"
+    return {"url": f"{base}/uploads/{filename}"}
