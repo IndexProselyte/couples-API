@@ -75,6 +75,16 @@ class Mood(Base):
     value = Column(String, default="neutral")
 
 
+class Presence(Base):
+    __tablename__ = "presence"
+
+    user_id = Column(String, primary_key=True)
+    is_online = Column(Boolean, default=False)
+    last_seen = Column(DateTime, nullable=True)    # UTC, updated on every status change
+    connected_at = Column(DateTime, nullable=True) # UTC, set when WS connects
+    connection_drops = Column(Integer, default=0)  # incremented on every WS disconnect
+
+
 class Message(Base):
     __tablename__ = "messages"
 
@@ -182,6 +192,11 @@ def seed_db() -> None:
             db.add(Mood(user_id=hers.id, value="neutral"))
         if not db.query(Mood).filter(Mood.user_id == his.id).first():
             db.add(Mood(user_id=his.id, value="neutral"))
+
+        if not db.query(Presence).filter(Presence.user_id == hers.id).first():
+            db.add(Presence(user_id=hers.id, is_online=False))
+        if not db.query(Presence).filter(Presence.user_id == his.id).first():
+            db.add(Presence(user_id=his.id, is_online=False))
 
         db.commit()
     except Exception:

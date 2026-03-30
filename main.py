@@ -9,6 +9,8 @@ from fastapi.staticfiles import StaticFiles
 
 from admin.router import router as admin_router
 from auth.router import router as auth_router
+from presence.router import router as presence_router
+from stats.router import router as stats_router
 from config import get_settings
 from couple.router import router as couple_router
 from database import Base, engine, seed_db
@@ -61,6 +63,8 @@ app.include_router(timeline_router,                       tags=["timeline"])
 app.include_router(upload_router,                         tags=["upload"])
 app.include_router(ws_router,                             tags=["websocket"])
 app.include_router(integrations_router,                   tags=["integrations"])
+app.include_router(presence_router,                       tags=["presence"])
+app.include_router(stats_router,                          tags=["stats"])
 
 
 @app.get("/health", tags=["health"])
