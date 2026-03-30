@@ -37,7 +37,7 @@ def get_events(
     return {"events": [r.model_dump() for r in result]}
 
 
-def create_event(db: Session, body: TimelineEventCreate) -> dict:
+def create_event(db: Session, body: TimelineEventCreate) -> tuple[dict, TimelineEventResponse]:
     event = TimelineEvent(
         id=str(uuid.uuid4()),
         title=body.title,
@@ -53,12 +53,12 @@ def create_event(db: Session, body: TimelineEventCreate) -> dict:
     )
     db.add(event)
     db.commit()
-    return {"id": event.id}
+    return {"id": event.id}, _to_response(event)
 
 
 def update_event(
     db: Session, event_id: str, body: TimelineEventUpdate
-) -> None:
+) -> TimelineEventResponse:
     event = db.query(TimelineEvent).filter(TimelineEvent.id == event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
@@ -79,6 +79,7 @@ def update_event(
     flag_modified(event, "stickers")
     flag_modified(event, "tags")
     db.commit()
+    return _to_response(event)
 
 
 def delete_event(db: Session, event_id: str) -> None:

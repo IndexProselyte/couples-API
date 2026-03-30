@@ -7,6 +7,7 @@ from auth.dependencies import get_current_user
 from database import User, get_db
 from timeline import service
 from timeline.schemas import TimelineCreateResponse, TimelineEventCreate, TimelineEventsResponse, TimelineEventUpdate
+from ws.manager import manager
 
 router = APIRouter()
 
@@ -22,30 +23,43 @@ def list_events(
 
 
 @router.post("/timeline/events", response_model=TimelineCreateResponse)
-def create_event(
+async def create_event(
     body: TimelineEventCreate,
     db: Session = Depends(get_db),
-    _current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ):
-    return service.create_event(db, body)
+    id_response, full_event = service.create_event(db, body)
+    await manager.broadcast(
+        {"type": "timeline_event_create", "data": full_event.model_dump()},
+        exclude_user_id=current_user.id,
+    )
+    return id_response
 
 
 @router.put("/timeline/events/{event_id}")
-def update_event(
+async def update_event(
     event_id: str,
     body: TimelineEventUpdate,
     db: Session = Depends(get_db),
-    _current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ):
-    service.update_event(db, event_id, body)
+    updated = service.update_event(db, event_id, body)
+    await manager.broadcast(
+        {"type": "timeline_event_update", "data": updated.model_dump()},
+        exclude_user_id=current_user.id,
+    )
     return {"ok": True}
 
 
 @router.delete("/timeline/events/{event_id}")
-def delete_event(
+async def delete_event(
     event_id: str,
     db: Session = Depends(get_db),
-    _current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ):
     service.delete_event(db, event_id)
+    await manager.broadcast(
+        {"type": "timeline_event_delete", "data": {"id": event_id}},
+        exclude_user_id=current_user.id,
+    )
     return {"ok": True}
