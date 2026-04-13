@@ -1,6 +1,7 @@
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
+from fastapi.encoders import jsonable_encoder # <-- 1. Import this
 from sqlalchemy.orm import Session
 
 from auth.dependencies import get_current_user
@@ -10,7 +11,6 @@ from messages.schemas import MessageCreate, MessageResponse, MessagesResponse, R
 from ws.manager import manager
 
 router = APIRouter()
-
 
 @router.get("/messages", response_model=MessagesResponse)
 def list_messages(
@@ -29,8 +29,16 @@ async def send_message(
     current_user: User = Depends(get_current_user),
 ):
     result = service.create_message(db, current_user, body)
+    
+    # 2. Safely encode datetimes/UUIDs to standard JSON strings
+    ws_payload = jsonable_encoder(result)
+    
+    # 3. Force the perspective so the partner receives it as an incoming message
+    if "is_sent" in ws_payload:
+        ws_payload["is_sent"] = False
+        
     await manager.broadcast(
-        {"type": "message", "data": result.model_dump()},
+        {"type": "message", "data": ws_payload},
         exclude_user_id=current_user.id,
     )
     return result
