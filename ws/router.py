@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
+from fastapi.encoders import jsonable_encoder # <-- 1. Import this
 from jose import JWTError
 
 from auth.service import decode_token
@@ -13,21 +14,7 @@ router = APIRouter()
 
 @router.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket, token: str = Query(...)):
-    """Authenticate via ?token=<jwt> then relay real-time events.
-
-    Server → Client frame types:
-      { "type": "message",              "data": <ChatMessage> }
-      { "type": "message_update",       "data": { "id": ..., "reactions": [...] | "is_starred": bool } }
-      { "type": "message_delete",       "data": { "id": ... } }
-      { "type": "partner_typing",       "data": { "typing": bool } }
-      { "type": "partner_presence",     "data": { "user_id": ..., "is_online": bool, "last_seen": ... } }
-      { "type": "timeline_event_create","data": <TimelineEvent> }
-      { "type": "timeline_event_update","data": <TimelineEvent> }
-      { "type": "timeline_event_delete","data": { "id": ... } }
-
-    Client → Server frame types:
-      { "type": "typing", "data": { "typing": bool } }
-    """
+    """Authenticate via ?token=<jwt> then relay real-time events."""
     try:
         payload = decode_token(token)
         user_id: str | None = payload.get("sub")
@@ -49,11 +36,13 @@ async def websocket_endpoint(ws: WebSocket, token: str = Query(...)):
         if row:
             row.connected_at = datetime.now(timezone.utc)
             db.commit()
+            
         await manager.broadcast(
             {"type": "partner_presence", "data": {
                 "user_id": presence.user_id,
                 "is_online": presence.is_online,
-                "last_seen": presence.last_seen,
+                # 2. Safely encode the datetime to an ISO string
+                "last_seen": jsonable_encoder(presence.last_seen), 
             }},
             exclude_user_id=user_id,
         )
@@ -64,6 +53,7 @@ async def websocket_endpoint(ws: WebSocket, token: str = Query(...)):
         while True:
             data = await ws.receive_json()
             if data.get("type") == "typing":
+                # This one is safe because `data` came from JSON already
                 await manager.broadcast(
                     {"type": "partner_typing", "data": data.get("data", {})},
                     exclude_user_id=user_id,
@@ -80,11 +70,13 @@ async def websocket_endpoint(ws: WebSocket, token: str = Query(...)):
                 row.connection_drops = (row.connection_drops or 0) + 1
                 db.commit()
             presence = set_presence(db, user_id, online=False)
+            
             await manager.broadcast(
                 {"type": "partner_presence", "data": {
                     "user_id": presence.user_id,
                     "is_online": presence.is_online,
-                    "last_seen": presence.last_seen,
+                    # 3. Safely encode the datetime here too
+                    "last_seen": jsonable_encoder(presence.last_seen),
                 }},
                 exclude_user_id=user_id,
             )
