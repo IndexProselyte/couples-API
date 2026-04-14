@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from auth.dependencies import get_current_user
 from database import User, get_db
 from timeline import service
-from timeline.schemas import TimelineCreateResponse, TimelineEventCreate, TimelineEventsResponse, TimelineEventUpdate
+from timeline.schemas import TimelineCreateResponse, TimelineEventCreate, TimelineEventsResponse, TimelineEventUpdate, TimelinePinUpdate
 from ws.manager import manager
 
 router = APIRouter()
@@ -46,6 +46,21 @@ async def update_event(
     updated = service.update_event(db, event_id, body)
     await manager.broadcast(
         {"type": "timeline_event_update", "data": updated.model_dump()},
+        exclude_user_id=current_user.id,
+    )
+    return {"ok": True}
+
+
+@router.put("/timeline/events/{event_id}/pin")
+async def pin_event(
+    event_id: str,
+    body: TimelinePinUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    service.pin_event(db, event_id, body.is_pinned)
+    await manager.broadcast(
+        {"type": "timeline_event_pin", "data": {"id": event_id, "is_pinned": body.is_pinned}},
         exclude_user_id=current_user.id,
     )
     return {"ok": True}

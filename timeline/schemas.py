@@ -42,3 +42,7 @@ class TimelineEventUpdate(TimelineEventCreate):
 
 class TimelineCreateResponse(BaseModel):
     id: str
+
+
+class TimelinePinUpdate(BaseModel):
+    is_pinned: bool

@@ -52,12 +52,33 @@ async def websocket_endpoint(ws: WebSocket, token: str = Query(...)):
     try:
         while True:
             data = await ws.receive_json()
-            if data.get("type") == "typing":
-                # This one is safe because `data` came from JSON already
+            frame_type = data.get("type")
+
+            if frame_type == "typing":
                 await manager.broadcast(
                     {"type": "partner_typing", "data": data.get("data", {})},
                     exclude_user_id=user_id,
                 )
+
+            elif frame_type == "presence":
+                online: bool = bool(data.get("data", {}).get("online", False))
+                db = SessionLocal()
+                try:
+                    presence = set_presence(db, user_id, online)
+                    await manager.broadcast(
+                        {
+                            "type": "partner_presence",
+                            "data": {
+                                "user_id": presence.user_id,
+                                "is_online": presence.is_online,
+                                "last_seen": jsonable_encoder(presence.last_seen),
+                            },
+                        },
+                        exclude_user_id=user_id,
+                    )
+                finally:
+                    db.close()
+
     except (WebSocketDisconnect, Exception):
         pass
     finally:
